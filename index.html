@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Word Invaders - Batalla de Palabras Retro</title>
+    <!-- Google Fonts para estilo Arcade Synthwave -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS CDN para la interfaz flotante -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #050510;
+            font-family: 'Press Start 2P', monospace;
+            color: #fff;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+            padding: 10px;
+            transition: background 0.8s ease;
+        }
+
+        canvas {
+            display: block;
+            box-shadow: 0 0 25px rgba(0, 255, 204, 0.4);
+            border: 3px solid #00f3ff;
+            border-radius: 12px;
+            background: #050510;
+            max-width: 100%;
+            max-height: 100%;
+            transition: border-color 0.8s ease, box-shadow 0.8s ease;
+        }
+
+        .font-arcade {
+            font-family: 'Press Start 2P', cursive;
+        }
+        .font-retro {
+            font-family: 'VT323', monospace;
+        }
+
+        .neon-text-blue {
+            color: #00f3ff;
+            text-shadow: 0 0 5px #00f3ff, 0 0 10px #00f3ff, 0 0 20px #00f3ff;
+        }
+
+        .neon-text-pink {
+            color: #ff007f;
+            text-shadow: 0 0 5px #ff007f, 0 0 10px #ff007f, 0 0 20px #ff007f;
+        }
+
+        .neon-text-yellow {
+            color: #ffea00;
+            text-shadow: 0 0 5px #ffea00, 0 0 10px #ffea00, 0 0 20px #ffea00;
+        }
+
+        .neon-text-green {
+            color: #00ff66;
+            text-shadow: 0 0 5px #00ff66, 0 0 10px #00ff66, 0 0 20px #00ff66;
+        }
+
+        .btn-retro {
+            background: linear-gradient(180deg, #ff007f 0%, #b30059 100%);
+            border: 4px solid #00f3ff;
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.5);
+            transition: all 0.15s ease-in-out;
+            cursor: pointer;
+        }
+
+        .btn-retro:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.8), inset 0 0 15px rgba(255, 255, 255, 0.8);
+        }
+
+        .btn-retro:active {
+            transform: scale(0.95);
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .overlay-screen {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(5, 5, 16, 0.88);
+            backdrop-filter: blur(6px);
+            z-index: 20;
+        }
+
+        .touch-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #00f3ff;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #00f3ff;
+            font-size: 24px;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .touch-btn:active {
+            background: rgba(0, 243, 255, 0.4);
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- Canvas para renderizado de juego -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- PANTALLA DE INICIO -->
+        <div id="start-screen" class="overlay-screen p-6 text-center">
+            <h1 class="font-arcade text-2xl sm:text-4xl neon-text-pink mb-3 leading-relaxed">WORD INVADERS</h1>
+            <p class="font-retro text-xl sm:text-2xl neon-text-blue mb-4">DEFENSORES DEL ALFABETO</p>
+            
+            <div class="max-w-xs sm:max-w-md bg-black/70 p-4 border-2 border-cyan-400 rounded-lg mb-6 text-left text-xs sm:text-sm leading-5">
+                <p class="text-yellow-300 font-bold mb-2 text-center">¡MISIÓN EDUCATIVA DE CADA NIVEL!</p>
+                <ul class="list-disc list-inside space-y-1.5 text-gray-200">
+                    <li>Completa <span class="text-yellow-400 font-bold">3 palabras con éxito</span> para avanzar de nivel.</li>
+                    <li>¡Descubre <span class="text-green-400 font-bold">8 galaxias temáticas</span> con distintas naves y estilos!</li>
+                    <li>Dispara a las naves en el <span class="text-cyan-300 font-bold">orden correcto</span> letra por letra.</li>
+                    <li>Las letras ajenas a la palabra pueden pasar sin restar vida.</li>
+                </ul>
+            </div>
+
+            <button id="start-btn" class="btn-retro font-arcade text-sm sm:text-base py-3 px-6 rounded-lg text-white tracking-widest">
+                ¡INICIAR MISION!
+            </button>
+        </div>
+
+        <!-- PANTALLA DE NIVEL COMPLETADO (LEVEL UP) -->
+        <div id="level-screen" class="overlay-screen p-6 text-center hidden">
+            <h2 class="font-arcade text-2xl sm:text-4xl neon-text-green mb-3">¡NIVEL COMPLETADO!</h2>
+            <p id="level-up-title" class="font-arcade text-sm sm:text-lg text-cyan-300 mb-2">GALAXIA DESTRUIDA</p>
+            <p id="level-word-completed" class="font-retro text-2xl sm:text-3xl neon-text-yellow mb-6">ÚLTIMA PALABRA: </p>
+            <button id="next-level-btn" class="btn-retro font-arcade text-sm sm:text-base py-3 px-6 rounded-lg text-white">
+                ENTRAR A NUEVA GALAXIA &gt;
+            </button>
+        </div>
+
+        <!-- PANTALLA DE JUEGO COMPLETADO (VICTORIA FINAL) -->
+        <div id="victory-screen" class="overlay-screen p-6 text-center hidden">
+            <h2 class="font-arcade text-2xl sm:text-4xl neon-text-yellow mb-3">¡CAMPEÓN GALÁCTICO!</h2>
+            <p class="font-retro text-xl sm:text-2xl text-green-400 mb-4">¡HAS COMPLETADO LOS 8 NIVELES DE PALABRAS!</p>
+            <p id="victory-score" class="font-retro text-2xl text-cyan-300 mb-6">PUNTAJE FINAL: 0</p>
+            <button id="victory-restart-btn" class="btn-retro font-arcade text-sm sm:text-base py-3 px-6 rounded-lg text-white">
+                JUGAR DE NUEVO
+            </button>
+        </div>
+
+        <!-- PANTALLA DE GAME OVER -->
+        <div id="gameover-screen" class="overlay-screen p-6 text-center hidden">
+            <h2 class="font-arcade text-3xl sm:text-5xl neon-text-pink mb-4">GAME OVER</h2>
+            <p id="final-score" class="font-retro text-3xl sm:text-4xl text-yellow-300 mb-2">PUNTAJE FINAL: 0</p>
+            <p id="words-completed-count" class="text-xs sm:text-sm text-cyan-300 mb-8">PALABRAS DESTRUIDAS: 0</p>
+            <button id="restart-btn" class="btn-retro font-arcade text-base sm:text-lg py-4 px-8 rounded-lg text-white">
+                REINTENTAR
+            </button>
+        </div>
+
+        <!-- BOTÓN DE SONIDO / MUTE -->
+        <button id="audio-toggle" class="absolute top-4 right-4 z-30 p-3 bg-black/60 border border-cyan-400 rounded-full text-cyan-400 text-sm hover:bg-cyan-950 transition">
+            🔊
+        </button>
+
+        <!-- CONTROLES TÁCTILES PARA DISPOSITIVOS MÓVILES -->
+        <div id="mobile-controls" class="absolute bottom-4 left-0 right-0 px-6 flex justify-between items-center z-10 pointer-events-none md:hidden hidden">
+            <div class="flex gap-3 pointer-events-auto">
+                <div id="btn-left" class="touch-btn w-14 h-14 font-bold">◄</div>
+                <div id="btn-right" class="touch-btn w-14 h-14 font-bold">►</div>
+            </div>
+            <div class="pointer-events-auto">
+                <div id="btn-fire" class="touch-btn w-16 h-16 bg-red-600/40 border-red-500 text-red-400 font-bold text-xs tracking-tighter">DISPARO</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- SÍNTESIS DE AUDIO CON WEB AUDIO API ---
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playLaser() {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(900, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 0.12);
+                
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.12);
+            }
+
+            playHitCorrect() {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, this.ctx.currentTime);
+                osc.frequency.setValueAtTime(659.25, this.ctx.currentTime + 0.07);
+                osc.frequency.setValueAtTime(783.99, this.ctx.currentTime + 0.14);
+                osc.frequency.setValueAtTime(1046.50, this.ctx.currentTime + 0.21);
+
+                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.3);
+            }
+
+            playHitWrong() {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(50, this.ctx.currentTime + 0.25);
+
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.25);
+            }
+
+            playLevelWin() {
+                if (this.muted || !this.ctx) return;
+                const notes = [440, 554.37, 659.25, 880, 1046.50];
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.08);
+                    
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.08 + 0.25);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + idx * 0.08);
+                    osc.stop(this.ctx.currentTime + idx * 0.08 + 0.25);
+                });
+            }
+
+            playExplosion() {
+                if (this.muted || !this.ctx) return;
+                const bufferSize = this.ctx.sampleRate * 0.25;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const output = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+
+                const whiteNoise = this.ctx.createBufferSource();
+                whiteNoise.buffer = buffer;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(800, this.ctx.currentTime);
+                filter.frequency.linearRampToValueAtTime(40, this.ctx.currentTime + 0.25);
+
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+
+                whiteNoise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                whiteNoise.start();
+                whiteNoise.stop(this.ctx.currentTime + 0.25);
+            }
+        }
+
+        const sounds = new SoundEngine();
+
+        // --- CATALOGO EXTENDIDO (>24 PALABRAS CON SVG VECTORIAL INLINE) ---
+        const WORD_DATA = {
+            "SOL": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="22" fill="#ffea00"/><g stroke="#ffea00" stroke-width="5" stroke-linecap="round"><line x1="50" y1="10" x2="50" y2="20"/><line x1="50" y1="80" x2="50" y2="90"/><line x1="10" y1="50" x2="20" y2="50"/><line x1="80" y1="50" x2="90" y2="50"/><line x1="22" y1="22" x2="29" y2="29"/><line x1="71" y1="71" x2="78" y2="78"/><line x1="22" y1="78" x2="29" y2="71"/><line x1="71" y1="29" x2="78" y2="22"/></g></svg>`,
+            "PAN": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><ellipse cx="50" cy="52" rx="38" ry="22" fill="#d97706" stroke="#fef08a" stroke-width="3"/><path d="M 25 45 Q 35 38 45 45 M 40 45 Q 50 38 60 45 M 55 45 Q 65 38 75 45" stroke="#fef08a" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`,
+            "MAR": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M 10 35 Q 25 20 40 35 T 70 35 T 100 35 L 100 85 L 10 85 Z" fill="#00f3ff" opacity="0.6"/><path d="M 0 50 Q 15 35 30 50 T 60 50 T 90 50 L 100 50 L 100 90 L 0 90 Z" fill="#00bfff"/></svg>`,
+            "PEZ": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><ellipse cx="45" cy="50" rx="30" ry="20" fill="#00ff66" stroke="#00f3ff" stroke-width="2"/><polygon points="70,50 90,32 90,68" fill="#00ff66" stroke="#00f3ff" stroke-width="2"/><circle cx="30" cy="45" r="4" fill="#000"/><circle cx="31" cy="44" r="1.5" fill="#fff"/></svg>`,
+            "OSO": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="28" cy="28" r="12" fill="#b45309"/><circle cx="72" cy="28" r="12" fill="#b45309"/><circle cx="50" cy="55" r="30" fill="#d97706"/><ellipse cx="50" cy="65" rx="16" ry="12" fill="#fde047"/><circle cx="40" cy="48" r="4" fill="#000"/><circle cx="60" cy="48" r="4" fill="#000"/><ellipse cx="50" cy="62" rx="6" ry="4" fill="#000"/></svg>`,
+            "FLOR": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g fill="#ff007f"><circle cx="50" cy="28" r="14"/><circle cx="50" cy="72" r="14"/><circle cx="28" cy="50" r="14"/><circle cx="72" cy="50" r="14"/><circle cx="35" cy="35" r="14"/><circle cx="65" cy="65" r="14"/><circle cx="35" cy="65" r="14"/><circle cx="65" cy="35" r="14"/></g><circle cx="50" cy="50" r="15" fill="#ffea00" stroke="#fff" stroke-width="2"/></svg>`,
+            "CASA": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><polygon points="50,15 15,45 85,45" fill="#ff007f" stroke="#00f3ff" stroke-width="3"/><rect x="25" y="45" width="50" height="42" fill="#1e1b4b" stroke="#00f3ff" stroke-width="3"/><rect x="42" y="62" width="16" height="25" fill="#ffea00"/><rect x="32" y="52" width="12" height="12" fill="#00f3ff"/><rect x="56" y="52" width="12" height="12" fill="#00f3ff"/></svg>`,
+            "LUNA": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M 60 20 A 30 30 0 1 0 80 70 A 35 35 0 1 1 60 20 Z" fill="#ffea00" stroke="#fff" stroke-width="2"/></svg>`,
+            "GATO": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><polygon points="25,25 20,50 40,42" fill="#ff007f"/><polygon points="75,25 80,50 60,42" fill="#ff007f"/><circle cx="50" cy="55" r="28" fill="#ff007f" stroke="#00f3ff" stroke-width="2"/><circle cx="38" cy="50" r="5" fill="#ffea00"/><circle cx="62" cy="50" r="5" fill="#ffea00"/><polygon points="50,58 45,63 55,63" fill="#fff"/></svg>`,
+            "PATO": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><ellipse cx="45" cy="60" rx="25" ry="18" fill="#ffea00"/><circle cx="65" cy="38" r="14" fill="#ffea00"/><polygon points="75,38 92,34 82,44" fill="#f97316"/><circle cx="68" cy="34" r="3" fill="#000"/></svg>`,
+            "AUTO": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect x="15" y="45" width="70" height="25" rx="6" fill="#ef4444"/><path d="M 30 45 L 42 25 L 68 25 L 75 45 Z" fill="#38bdf8"/><circle cx="32" cy="70" r="10" fill="#333" stroke="#fff" stroke-width="3"/><circle cx="68" cy="70" r="10" fill="#333" stroke="#fff" stroke-width="3"/></svg>`,
+            "NUBE": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M 25 65 A 18 18 0 0 1 30 35 A 22 22 0 0 1 70 35 A 18 18 0 0 1 80 65 Z" fill="#38bdf8" stroke="#fff" stroke-width="3"/></svg>`,
+            "LIBRO": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect x="20" y="25" width="60" height="50" rx="4" fill="#3b82f6" stroke="#00f3ff" stroke-width="3"/><path d="M 25 30 L 75 30 M 25 40 L 75 40 M 25 50 L 60 50 M 25 60 L 70 60" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>`,
+            "PERRO": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="26" ry="22" fill="#d97706"/><ellipse cx="25" cy="45" rx="8" ry="18" fill="#b45309"/><ellipse cx="75" cy="45" rx="8" ry="18" fill="#b45309"/><circle cx="40" cy="50" r="4" fill="#000"/><circle cx="60" cy="50" r="4" fill="#000"/><ellipse cx="50" cy="62" rx="7" ry="5" fill="#000"/></svg>`,
+            "ARBOL": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect x="42" y="55" width="16" height="32" fill="#b45309"/><circle cx="50" cy="40" r="26" fill="#00ff66" stroke="#00f3ff" stroke-width="2"/></svg>`,
+            "MESA": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect x="15" y="35" width="70" height="12" rx="3" fill="#b45309" stroke="#fde047" stroke-width="2"/><rect x="22" y="47" width="8" height="35" fill="#78350f"/><rect x="70" y="47" width="8" height="35" fill="#78350f"/></svg>`,
+            "LEON": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="34" fill="#b45309"/><circle cx="50" cy="52" r="22" fill="#fbbf24"/><circle cx="42" cy="46" r="3.5" fill="#000"/><circle cx="58" cy="46" r="3.5" fill="#000"/><polygon points="50,54 44,60 56,60" fill="#78350f"/></svg>`,
+            "TREN": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect x="15" y="38" width="50" height="32" fill="#ef4444"/><rect x="55" y="25" width="30" height="45" fill="#3b82f6"/><rect x="62" y="32" width="16" height="16" fill="#fde047"/><circle cx="28" cy="74" r="8" fill="#333" stroke="#fff" stroke-width="2"/><circle cx="48" cy="74" r="8" fill="#333" stroke="#fff" stroke-width="2"/><circle cx="70" cy="74" r="10" fill="#333" stroke="#fff" stroke-width="2"/></svg>`,
+            "COHETE": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M 50 15 Q 70 40 65 70 L 35 70 Q 30 40 50 15 Z" fill="#ef4444" stroke="#fff" stroke-width="2"/><circle cx="50" cy="42" r="8" fill="#00f3ff"/><polygon points="35,60 18,78 35,72" fill="#ff007f"/><polygon points="65,60 82,78 65,72" fill="#ff007f"/><polygon points="40,70 50,90 60,70" fill="#ffea00"/></svg>`,
+            "ROBOT": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect x="28" y="25" width="44" height="32" rx="4" fill="#94a3b8" stroke="#00f3ff" stroke-width="2"/><rect x="35" y="60" width="30" height="28" rx="2" fill="#64748b" stroke="#00f3ff" stroke-width="2"/><circle cx="40" cy="38" r="5" fill="#ff007f"/><circle cx="60" cy="38" r="5" fill="#00ff66"/><rect x="42" y="48" width="16" height="4" fill="#ffea00"/><line x1="50" y1="25" x2="50" y2="12" stroke="#00f3ff" stroke-width="3"/><circle cx="50" cy="10" r="4" fill="#ef4444"/></svg>`,
+            "BARCO": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M 15 55 L 85 55 L 72 80 L 28 80 Z" fill="#b45309" stroke="#fff" stroke-width="2"/><line x1="50" y1="55" x2="50" y2="18" stroke="#fff" stroke-width="3"/><polygon points="50,20 80,38 50,38" fill="#38bdf8"/></svg>`,
+            "PELOTA": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="32" fill="#ef4444" stroke="#fff" stroke-width="3"/><path d="M 20 40 Q 50 60 80 40" stroke="#3b82f6" stroke-width="8" fill="none"/><path d="M 25 65 Q 50 35 75 65" stroke="#ffea00" stroke-width="8" fill="none"/></svg>`,
+            "MANZANA": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M 50 30 C 30 15 15 35 22 65 C 28 85 45 85 50 72 C 55 85 72 85 78 65 C 85 35 70 15 50 30 Z" fill="#ef4444" stroke="#fff" stroke-width="2"/><path d="M 50 30 Q 55 18 65 15" stroke="#b45309" stroke-width="4" fill="none"/><path d="M 53 22 Q 68 20 62 30 Z" fill="#00ff66"/></svg>`,
+            "ESTRELLA": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><polygon points="50,10 63,38 93,38 68,56 78,86 50,68 22,86 32,56 7,38 37,38" fill="#ffea00" stroke="#fff" stroke-width="2"/></svg>`
+        };
+
+        // --- BANCO DE PALABRAS ASIGNADAS A 8 NIVELES (3 PALABRAS POR NIVEL = 24 PALABRAS) ---
+        const LEVEL_WORD_BANKS = {
+            1: ["SOL", "PAN", "MAR"],       // Nivel 1: Palabras de 3 letras muy sencillas
+            2: ["PEZ", "OSO", "FLOR"],      // Nivel 2: Palabras cortas con distintos sonidos
+            3: ["CASA", "LUNA", "GATO"],      // Nivel 3: Palabras básicas de 4 letras
+            4: ["PATO", "AUTO", "NUBE"],      // Nivel 4: Objetos comunes de 4 letras
+            5: ["LIBRO", "PERRO", "ARBOL"],   // Nivel 5: Palabras de 5 letras
+            6: ["MESA", "LEON", "TREN"],      // Nivel 6: Animales y transportes
+            7: ["COHETE", "ROBOT", "BARCO"],  // Nivel 7: Palabras de 5 y 6 letras
+            8: ["PELOTA", "MANZANA", "ESTRELLA"] // Nivel 8: Palabras largas para nivel final
+        };
+
+        // --- TEMAS VISUALES DE NIVELES (8 TEMAS RECONOCIBLES) ---
+        const LEVEL_THEMES = {
+            1: {
+                name: "Espacio Azul Neón",
+                bgGradient: "radial-gradient(circle at center, #0f0c29, #1a1c4b, #050510)",
+                containerBg: "#0f0c29",
+                borderColor: "#00f3ff",
+                playerColor: "#00f3ff",
+                playerCabin: "#ffffff",
+                enemyColor: "#ff007f",
+                laserColor: "#ffea00",
+                starColors: ['#ffffff', '#00f3ff', '#ff007f']
+            },
+            2: {
+                name: "Nebulosa Púrpura",
+                bgGradient: "radial-gradient(circle at center, #2e0854, #180333, #080014)",
+                containerBg: "#2e0854",
+                borderColor: "#a855f7",
+                playerColor: "#c084fc",
+                playerCabin: "#ffea00",
+                enemyColor: "#00ff66",
+                laserColor: "#00f3ff",
+                starColors: ['#ffffff', '#c084fc', '#00ff66']
+            },
+            3: {
+                name: "Tormenta Verde Matrix",
+                bgGradient: "radial-gradient(circle at center, #022c22, #064e3b, #02110d)",
+                containerBg: "#022c22",
+                borderColor: "#00ff66",
+                playerColor: "#00ff66",
+                playerCabin: "#ffffff",
+                enemyColor: "#ffea00",
+                laserColor: "#ff007f",
+                starColors: ['#ffffff', '#00ff66', '#a7f3d0']
+            },
+            4: {
+                name: "Ocaso Rojo Carmesí",
+                bgGradient: "radial-gradient(circle at center, #450a0a, #7f1d1d, #180303)",
+                containerBg: "#450a0a",
+                borderColor: "#ef4444",
+                playerColor: "#f97316",
+                playerCabin: "#00f3ff",
+                enemyColor: "#38bdf8",
+                laserColor: "#00ff66",
+                starColors: ['#ffffff', '#fca5a5', '#fdba74']
+            },
+            5: {
+                name: "Abismo Dorado / Cian",
+                bgGradient: "radial-gradient(circle at center, #451a03, #78350f, #0f0800)",
+                containerBg: "#451a03",
+                borderColor: "#eab308",
+                playerColor: "#facc15",
+                playerCabin: "#ffffff",
+                enemyColor: "#00f3ff",
+                laserColor: "#ff007f",
+                starColors: ['#ffffff', '#fef08a', '#38bdf8']
+            },
+            6: {
+                name: "Espacio Profundo Magenta",
+                bgGradient: "radial-gradient(circle at center, #500724, #831843, #140109)",
+                containerBg: "#500724",
+                borderColor: "#f43f5e",
+                playerColor: "#fb7185",
+                playerCabin: "#ffea00",
+                enemyColor: "#a855f7",
+                laserColor: "#00ff66",
+                starColors: ['#ffffff', '#f43f5e', '#f0abfc']
+            },
+            7: {
+                name: "Ciber Violeta Retro",
+                bgGradient: "radial-gradient(circle at center, #311042, #581c87, #0d0316)",
+                containerBg: "#311042",
+                borderColor: "#d8b4fe",
+                playerColor: "#e9d5ff",
+                playerCabin: "#00f3ff",
+                enemyColor: "#f43f5e",
+                laserColor: "#ffea00",
+                starColors: ['#ffffff', '#d8b4fe', '#f43f5e']
+            },
+            8: {
+                name: "Agujero Negro Ámbar",
+                bgGradient: "radial-gradient(circle at center, #291e03, #451a03, #000000)",
+                containerBg: "#291e03",
+                borderColor: "#f59e0b",
+                playerColor: "#fbbf24",
+                playerCabin: "#ffffff",
+                enemyColor: "#00ff66",
+                laserColor: "#38bdf8",
+                starColors: ['#ffffff', '#fbbf24', '#00ff66']
+            }
+        };
+
+        // --- CONFIGURACIÓN DE CANVAS Y JUEGO ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Caché de imágenes cargadas para el Canvas
+        const wordImageCache = {};
+
+        function preloadWordImages() {
+            Object.keys(WORD_DATA).forEach(word => {
+                const svgString = WORD_DATA[word];
+                const img = new Image();
+                img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(svgString);
+                wordImageCache[word] = img;
+            });
+        }
+
+        // Estado Global del Juego
+        const gameState = {
+            status: 'START', // 'START', 'PLAYING', 'LEVEL_COMPLETE', 'GAMEOVER', 'VICTORY'
+            score: 0,
+            lives: 3,
+            level: 1,
+            targetWord: "",
+            targetIndex: 0,
+            wordsClearedInLevel: 0, // Contador 0 a 3 palabras
+            totalWordsCleared: 0,
+            shakeTime: 0
+        };
+
+        // Entidades
+        let player;
+        let bullets = [];
+        let enemies = [];
+        let particles = [];
+        let stars = [];
+        let floatingTexts = [];
+
+        // Teclas
+        const keys = {
+            Left: false,
+            Right: false,
+            Shoot: false
+        };
+
+        // --- MANEJO DE TAMAÑO ADAPTATIVO COMPACTO (~700x500px) ---
+        function resizeCanvas() {
+            const container = document.getElementById('game-container');
+            const maxW = 700;
+            const maxH = 500;
+
+            let w = Math.min(container.clientWidth - 20, maxW);
+            let h = Math.min(container.clientHeight - 20, maxH);
+
+            if (w / h > maxW / maxH) {
+                w = h * (maxW / maxH);
+            } else {
+                h = w * (maxH / maxW);
+            }
+
+            canvas.width = Math.max(w, 320);
+            canvas.height = Math.max(h, 420);
+
+            if (player) {
+                player.y = canvas.height - 50;
+                player.x = Math.min(player.x, canvas.width - player.width);
+            }
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // --- ACTUALIZAR TEMA DEL NIVEL ---
+        function applyLevelTheme() {
+            const currentLevel = Math.min(gameState.level, 8);
+            const theme = LEVEL_THEMES[currentLevel];
+            const container = document.getElementById('game-container');
+
+            container.style.background = theme.bgGradient;
+            canvas.style.borderColor = theme.borderColor;
+            canvas.style.boxShadow = `0 0 25px ${theme.borderColor}`;
+
+            // Re-generar colores de estrellas según el tema
+            initStars();
+        }
+
+        // --- CLASES DEL JUEGO ---
+
+        // Fondo de estrellas
+        class Star {
+            constructor() {
+                this.reset();
+                this.y = Math.random() * (canvas.height || 500);
+            }
+
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = 0;
+                this.size = Math.random() * 2 + 1;
+                this.speed = Math.random() * 1.5 + 0.5;
+                const theme = LEVEL_THEMES[Math.min(gameState.level, 8)];
+                this.color = theme.starColors[Math.floor(Math.random() * theme.starColors.length)];
+            }
+
+            update() {
+                this.y += this.speed;
+                if (this.y > canvas.height) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.size, this.size);
+            }
+        }
+
+        // Nave del Jugador (Diseño dinámico por nivel)
+        class Player {
+            constructor() {
+                this.width = 38;
+                this.height = 32;
+                this.x = canvas.width / 2 - this.width / 2;
+                this.y = canvas.height - 50;
+                this.speed = 6.8;
+                this.lastShootTime = 0;
+                this.shootCooldown = 190;
+            }
+
+            update() {
+                if (keys.Left && this.x > 0) {
+                    this.x -= this.speed;
+                }
+                if (keys.Right && this.x < canvas.width - this.width) {
+                    this.x += this.speed;
+                }
+                if (keys.Shoot) {
+                    this.shoot();
+                }
+            }
+
+            shoot() {
+                const now = Date.now();
+                if (now - this.lastShootTime >= this.shootCooldown) {
+                    bullets.push(new Bullet(this.x + this.width / 2, this.y));
+                    sounds.playLaser();
+                    this.lastShootTime = now;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                const theme = LEVEL_THEMES[Math.min(gameState.level, 8)];
+
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = theme.playerColor;
+
+                // Forma de la nave según nivel
+                ctx.fillStyle = theme.playerColor;
+                ctx.beginPath();
+
+                if (gameState.level % 2 === 1) {
+                    // Diseño A (Nave Cuneiforme)
+                    ctx.moveTo(this.width / 2, 0);
+                    ctx.lineTo(this.width, this.height);
+                    ctx.lineTo(this.width * 0.7, this.height - 6);
+                    ctx.lineTo(this.width * 0.3, this.height - 6);
+                    ctx.lineTo(0, this.height);
+                } else {
+                    // Diseño B (Nave Doble Ala)
+                    ctx.moveTo(this.width / 2, 0);
+                    ctx.lineTo(this.width * 0.85, 10);
+                    ctx.lineTo(this.width, this.height);
+                    ctx.lineTo(this.width * 0.5, this.height - 4);
+                    ctx.lineTo(0, this.height);
+                    ctx.lineTo(this.width * 0.15, 10);
+                }
+
+                ctx.closePath();
+                ctx.fill();
+
+                // Cabina
+                ctx.fillStyle = theme.playerCabin;
+                ctx.fillRect(this.width / 2 - 3, 8, 6, 9);
+
+                // Propulsor de fuego
+                const flameHeight = Math.random() * 7 + 5;
+                ctx.fillStyle = theme.enemyColor;
+                ctx.beginPath();
+                ctx.moveTo(this.width / 2 - 5, this.height - 2);
+                ctx.lineTo(this.width / 2 + 5, this.height - 2);
+                ctx.lineTo(this.width / 2, this.height - 2 + flameHeight);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        // Proyectiles
+        class Bullet {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = 4;
+                this.height = 14;
+                this.speed = 9.5;
+                this.markedForDeletion = false;
+            }
+
+            update() {
+                this.y -= this.speed;
+                if (this.y < 0) {
+                    this.markedForDeletion = true;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                const theme = LEVEL_THEMES[Math.min(gameState.level, 8)];
+                ctx.fillStyle = theme.laserColor;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = theme.laserColor;
+                ctx.fillRect(this.x - this.width / 2, this.y, this.width, this.height);
+                ctx.restore();
+            }
+        }
+
+        // Nave Enemiga con Letra
+        class EnemyLetter {
+            constructor(letter) {
+                this.letter = letter;
+                this.width = 38;
+                this.height = 34;
+                this.x = Math.random() * (canvas.width - this.width);
+                this.y = -this.height;
+                
+                const speedMult = 1 + (gameState.level - 1) * 0.12;
+                this.speed = (Math.random() * 0.6 + 0.7) * speedMult;
+
+                this.markedForDeletion = false;
+            }
+
+            get isCurrentTarget() {
+                const currentTargetChar = gameState.targetWord[gameState.targetIndex];
+                return this.letter === currentTargetChar;
+            }
+
+            update() {
+                this.y += this.speed;
+
+                if (this.y > canvas.height) {
+                    this.markedForDeletion = true;
+                    // REGLA: Si la nave que cruza lleva la LETRA OBJETIVO ACTUAL, se penaliza.
+                    if (this.isCurrentTarget && gameState.status === 'PLAYING') {
+                        handleWrongHit(`¡LETRA '${this.letter}' PERDIDA!`);
+                    }
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                const theme = LEVEL_THEMES[Math.min(gameState.level, 8)];
+                const targetChar = gameState.targetWord[gameState.targetIndex];
+                const isTarget = (this.letter === targetChar);
+                
+                const color = isTarget ? '#00ff66' : theme.enemyColor;
+
+                ctx.shadowBlur = isTarget ? 14 : 6;
+                ctx.shadowColor = color;
+
+                ctx.fillStyle = '#111827';
+                ctx.strokeStyle = color;
+                ctx.lineWidth = isTarget ? 3 : 2;
+
+                ctx.beginPath();
+                ctx.ellipse(this.width / 2, this.height / 2, this.width / 2, this.height / 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(this.width / 2, this.height / 3, 10, Math.PI, 0);
+                ctx.stroke();
+
+                ctx.fillStyle = isTarget ? '#00ff66' : '#ffffff';
+                ctx.font = 'bold 16px "Press Start 2P", monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.letter, this.width / 2, this.height / 2 + 2);
+
+                ctx.restore();
+            }
+        }
+
+        // Partículas
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.size = Math.random() * 3 + 2;
+                this.vx = (Math.random() - 0.5) * 7;
+                this.vy = (Math.random() - 0.5) * 7;
+                this.life = 1.0;
+                this.decay = Math.random() * 0.04 + 0.02;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= this.decay;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.life);
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.size, this.size);
+                ctx.restore();
+            }
+        }
+
+        // Textos Flotantes
+        class FloatingText {
+            constructor(text, x, y, color) {
+                this.text = text;
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.life = 1.0;
+                this.vy = -1.2;
+            }
+
+            update() {
+                this.y += this.vy;
+                this.life -= 0.025;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.life);
+                ctx.fillStyle = this.color;
+                ctx.font = '10px "Press Start 2P"';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.text, this.x, this.y);
+                ctx.restore();
+            }
+        }
+
+        // --- GENERACIÓN DE ENEMIGOS Y PALABRAS ---
+
+        let enemySpawnTimer = 0;
+        let enemySpawnInterval = 100;
+
+        function pickNewWord() {
+            const levelNum = Math.min(gameState.level, 8);
+            const bank = LEVEL_WORD_BANKS[levelNum];
+            
+            // Seleccionar la palabra según el progreso en el nivel (0, 1 o 2)
+            const index = gameState.wordsClearedInLevel % bank.length;
+            gameState.targetWord = bank[index];
+            gameState.targetIndex = 0;
+        }
+
+        function spawnEnemy() {
+            const targetChar = gameState.targetWord[gameState.targetIndex];
+            const alphabet = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ";
+            
+            const isTargetInEnemyList = enemies.some(e => e.letter === targetChar);
+            let letterToSpawn = "";
+
+            if (!isTargetInEnemyList && Math.random() < 0.75) {
+                letterToSpawn = targetChar;
+            } else {
+                const isCorrectChar = Math.random() < 0.4;
+                if (isCorrectChar) {
+                    letterToSpawn = targetChar;
+                } else {
+                    do {
+                        letterToSpawn = alphabet[Math.floor(Math.random() * alphabet.length)];
+                    } while (letterToSpawn === targetChar);
+                }
+            }
+
+            enemies.push(new EnemyLetter(letterToSpawn));
+        }
+
+        function createExplosion(x, y, color, count = 15) {
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+
+        // --- LÓGICA DEL JUEGO ---
+
+        function handleCorrectHit(enemy) {
+            sounds.playHitCorrect();
+            createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, '#00ff66', 18);
+            
+            gameState.score += 100;
+            gameState.targetIndex++;
+
+            floatingTexts.push(new FloatingText("+100", enemy.x + enemy.width / 2, enemy.y, '#00ff66'));
+
+            // ¿Completó la palabra actual?
+            if (gameState.targetIndex >= gameState.targetWord.length) {
+                gameState.wordsClearedInLevel++;
+                gameState.totalWordsCleared++;
+                gameState.score += 300;
+
+                // REGLA CLAVE 1: Avance de Nivel cada 3 Palabras
+                if (gameState.wordsClearedInLevel >= 3) {
+                    sounds.playLevelWin();
+                    
+                    setTimeout(() => {
+                        if (gameState.level >= 8) {
+                            // Victoria final del juego
+                            triggerVictory();
+                        } else {
+                            gameState.level++;
+                            gameState.wordsClearedInLevel = 0;
+                            showLevelComplete();
+                        }
+                    }, 400);
+                } else {
+                    // Siguiente palabra del mismo nivel
+                    sounds.playHitCorrect();
+                    setTimeout(() => {
+                        pickNewWord();
+                    }, 300);
+                }
+            }
+        }
+
+        function handleWrongHit(reason = "¡LETRA INCORRECTA!") {
+            sounds.playHitWrong();
+            gameState.lives--;
+            gameState.shakeTime = 12;
+            
+            if (player) {
+                createExplosion(player.x + player.width / 2, player.y, '#ff007f', 12);
+            }
+
+            floatingTexts.push(new FloatingText(reason, canvas.width / 2, canvas.height / 2, '#ff007f'));
+
+            if (gameState.lives <= 0) {
+                triggerGameOver();
+            }
+        }
+
+        function triggerGameOver() {
+            gameState.status = 'GAMEOVER';
+            sounds.playExplosion();
+            document.getElementById('final-score').innerText = `PUNTAJE FINAL: ${gameState.score}`;
+            document.getElementById('words-completed-count').innerText = `PALABRAS DESTRUIDAS: ${gameState.totalWordsCleared}`;
+            document.getElementById('gameover-screen').classList.remove('hidden');
+        }
+
+        function triggerVictory() {
+            gameState.status = 'VICTORY';
+            document.getElementById('victory-score').innerText = `PUNTAJE FINAL: ${gameState.score}`;
+            document.getElementById('victory-screen').classList.remove('hidden');
+        }
+
+        function showLevelComplete() {
+            gameState.status = 'LEVEL_COMPLETE';
+            const theme = LEVEL_THEMES[Math.min(gameState.level, 8)];
+            document.getElementById('level-up-title').innerText = `¡BIENVENIDO A: ${theme.name.toUpperCase()}!`;
+            document.getElementById('level-word-completed').innerText = `ÚLTIMA PALABRA: ${gameState.targetWord}`;
+            document.getElementById('level-screen').classList.remove('hidden');
+        }
+
+        function startNextLevel() {
+            document.getElementById('level-screen').classList.add('hidden');
+            applyLevelTheme();
+            pickNewWord();
+            enemies = [];
+            bullets = [];
+            gameState.status = 'PLAYING';
+        }
+
+        function resetGame() {
+            gameState.score = 0;
+            gameState.lives = 3;
+            gameState.level = 1;
+            gameState.wordsClearedInLevel = 0;
+            gameState.totalWordsCleared = 0;
+            enemies = [];
+            bullets = [];
+            particles = [];
+            floatingTexts = [];
+            
+            applyLevelTheme();
+            pickNewWord();
+            
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('gameover-screen').classList.add('hidden');
+            document.getElementById('level-screen').classList.add('hidden');
+            document.getElementById('victory-screen').classList.add('hidden');
+
+            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                document.getElementById('mobile-controls').classList.remove('hidden');
+            }
+
+            gameState.status = 'PLAYING';
+        }
+
+        // --- RENDERIZADO DE INTERFAZ Y HUD CON ILUSTRACIÓN Y PROGRESO 1/3 ---
+
+        function drawHUD() {
+            ctx.save();
+            ctx.fillStyle = 'rgba(5, 5, 20, 0.85)';
+            ctx.fillRect(0, 0, canvas.width, 105);
+
+            const theme = LEVEL_THEMES[Math.min(gameState.level, 8)];
+            ctx.strokeStyle = theme.borderColor;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, 105);
+            ctx.lineTo(canvas.width, 105);
+            ctx.stroke();
+
+            // 1. Datos Principales (Puntuación, Nivel, Indicador Palabras: X/3, Vidas)
+            ctx.font = '8px "Press Start 2P"';
+            ctx.fillStyle = theme.borderColor;
+            ctx.textAlign = 'left';
+            ctx.fillText(`PTS: ${gameState.score}`, 10, 18);
+
+            ctx.textAlign = 'center';
+            ctx.fillText(`NIVEL ${gameState.level}`, canvas.width / 2 - 45, 18);
+            
+            // INDICADOR DE PALABRAS EN EL NIVEL ACTUAL (Ejemplo: "PALABRAS: 1/3")
+            ctx.fillStyle = '#ffea00';
+            ctx.fillText(`PALABRAS: ${gameState.wordsClearedInLevel + 1}/3`, canvas.width / 2 + 55, 18);
+
+            ctx.textAlign = 'right';
+            let hearts = "";
+            for (let i = 0; i < gameState.lives; i++) hearts += "♥ ";
+            ctx.fillStyle = '#ff007f';
+            ctx.fillText(`VIDAS: ${hearts}`, canvas.width - 10, 18);
+
+            // 2. Ilustración/Imagen SVG de la Palabra
+            const word = gameState.targetWord;
+            const img = wordImageCache[word];
+            const imgSize = 46;
+            const imgX = 16;
+            const imgY = 40;
+
+            if (img && img.complete) {
+                ctx.strokeStyle = theme.borderColor;
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(imgX - 2, imgY - 2, imgSize + 4, imgSize + 4);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(imgX - 2, imgY - 2, imgSize + 4, imgSize + 4);
+
+                ctx.drawImage(img, imgX, imgY, imgSize, imgSize);
+            }
+
+            // 3. Palabra Objetivo y Progreso de Deletreo
+            const currIdx = gameState.targetIndex;
+            ctx.font = '15px "Press Start 2P"';
+            
+            const startX = Math.max(95, canvas.width / 2 - (word.length * 22) / 2 + 10);
+
+            for (let i = 0; i < word.length; i++) {
+                let charToShow = "_";
+                let charColor = "#555577";
+
+                if (i < currIdx) {
+                    charToShow = word[i];
+                    charColor = "#00ff66";
+                } else if (i === currIdx) {
+                    charToShow = word[i];
+                    charColor = "#ffea00";
+                    
+                    // Destacado amarillo parpadeante
+                    ctx.strokeStyle = "#ffea00";
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeRect(startX + i * 22 - 8, 48, 18, 24);
+                }
+
+                ctx.fillStyle = charColor;
+                ctx.textAlign = 'center';
+                ctx.fillText(charToShow, startX + i * 22, 66);
+            }
+
+            ctx.restore();
+        }
+
+        // --- BUCLE PRINCIPAL (GAME LOOP) ---
+
+        function update() {
+            if (gameState.status !== 'PLAYING') return;
+
+            player.update();
+
+            enemySpawnTimer++;
+            const currentInterval = Math.max(35, enemySpawnInterval - gameState.level * 6);
+            if (enemySpawnTimer >= currentInterval) {
+                spawnEnemy();
+                enemySpawnTimer = 0;
+            }
+
+            bullets.forEach(b => b.update());
+            bullets = bullets.filter(b => !b.markedForDeletion);
+
+            enemies.forEach(e => e.update());
+            enemies = enemies.filter(e => !e.markedForDeletion);
+
+            // Colisiones
+            bullets.forEach(bullet => {
+                enemies.forEach(enemy => {
+                    if (!bullet.markedForDeletion && !enemy.markedForDeletion) {
+                        if (
+                            bullet.x > enemy.x &&
+                            bullet.x < enemy.x + enemy.width &&
+                            bullet.y > enemy.y &&
+                            bullet.y < enemy.y + enemy.height
+                        ) {
+                            bullet.markedForDeletion = true;
+
+                            const requiredChar = gameState.targetWord[gameState.targetIndex];
+                            
+                            if (enemy.letter === requiredChar) {
+                                enemy.markedForDeletion = true;
+                                handleCorrectHit(enemy);
+                            } else {
+                                sounds.playHitWrong();
+                                createExplosion(bullet.x, bullet.y, '#ff007f', 6);
+                                floatingTexts.push(new FloatingText("¡SECUENCIA ERRÓNEA!", enemy.x + enemy.width / 2, enemy.y, '#ff007f'));
+                            }
+                        }
+                    }
+                });
+            });
+
+            particles.forEach(p => p.update());
+            particles = particles.filter(p => p.life > 0);
+
+            floatingTexts.forEach(ft => ft.update());
+            floatingTexts = floatingTexts.filter(ft => ft.life > 0);
+
+            if (gameState.shakeTime > 0) gameState.shakeTime--;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+
+            if (gameState.shakeTime > 0) {
+                const shakeX = (Math.random() - 0.5) * 8;
+                const shakeY = (Math.random() - 0.5) * 8;
+                ctx.translate(shakeX, shakeY);
+            }
+
+            stars.forEach(s => {
+                s.update();
+                s.draw();
+            });
+
+            if (gameState.status === 'PLAYING' || gameState.status === 'LEVEL_COMPLETE') {
+                bullets.forEach(b => b.draw());
+                enemies.forEach(e => e.draw());
+                if (player) player.draw();
+                particles.forEach(p => p.draw());
+                floatingTexts.forEach(ft => ft.draw());
+
+                drawHUD();
+            }
+
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- INICIALIZACIÓN ---
+
+        function initStars() {
+            stars = [];
+            for (let i = 0; i < 55; i++) {
+                stars.push(new Star());
+            }
+        }
+
+        function setupEventListeners() {
+            window.addEventListener('keydown', e => {
+                sounds.init();
+                if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.Left = true;
+                if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.Right = true;
+                if (e.code === 'Space') {
+                    keys.Shoot = true;
+                    e.preventDefault();
+                }
+            });
+
+            window.addEventListener('keyup', e => {
+                if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.Left = false;
+                if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.Right = false;
+                if (e.code === 'Space') keys.Shoot = false;
+            });
+
+            document.getElementById('start-btn').addEventListener('click', () => {
+                sounds.init();
+                resetGame();
+            });
+
+            document.getElementById('next-level-btn').addEventListener('click', () => {
+                sounds.init();
+                startNextLevel();
+            });
+
+            document.getElementById('restart-btn').addEventListener('click', () => {
+                sounds.init();
+                resetGame();
+            });
+
+            document.getElementById('victory-restart-btn').addEventListener('click', () => {
+                sounds.init();
+                resetGame();
+            });
+
+            const audioBtn = document.getElementById('audio-toggle');
+            audioBtn.addEventListener('click', () => {
+                sounds.init();
+                sounds.muted = !sounds.muted;
+                audioBtn.innerText = sounds.muted ? '🔇' : '🔊';
+            });
+
+            const btnLeft = document.getElementById('btn-left');
+            const btnRight = document.getElementById('btn-right');
+            const btnFire = document.getElementById('btn-fire');
+
+            const bindTouch = (elem, keyName) => {
+                elem.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    sounds.init();
+                    keys[keyName] = true;
+                });
+                elem.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    keys[keyName] = false;
+                });
+            };
+
+            bindTouch(btnLeft, 'Left');
+            bindTouch(btnRight, 'Right');
+            bindTouch(btnFire, 'Shoot');
+        }
+
+        window.onload = () => {
+            preloadWordImages();
+            resizeCanvas();
+            initStars();
+            player = new Player();
+            setupEventListeners();
+            gameLoop();
+        };
+    </script>
+</body>
+</html>
